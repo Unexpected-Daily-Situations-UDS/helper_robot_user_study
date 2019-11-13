@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Pilot study</title>
+        <script src="src/jspsych-6.1.0/jspsych.js"></script>
+        <script src="src/jspsych-6.1.0/plugins/jspsych-fullscreen.js"></script>
+        <script src="src/jspsych-6.1.0/plugins/jspsych-video-keyboard-response.js"></script>
+        <script src="src/jspsych-6.1.0/plugins/jspsych-survey-text.js"></script>
+        <script src="src/jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
+        <link href="src/jspsych-6.1.0/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+    </head>
+    <body></body>
+    <script>
+
+    /*****************************************************/
+		function beginExperiment(timeline, condition){
+			timeline.push({
+			  type: 'fullscreen',
+			  fullscreen_mode: true
+			});
+
+		    /* define welcome message trial */
+	    var welcome = {
+	      type: "html-keyboard-response",
+	      stimulus: "Welcome to the experiment. Press any key to begin."
+	    };
+	    timeline.push(welcome);
+
+		  var instructionsA0 = {
+			  type: "html-keyboard-response",
+			  stimulus: "<img src='img/tiago_robot_view0.png' height='300'/>" +
+                  "<img src='img/tiago_robot_view1.png' height='300'/>" +
+                  "<p>In this experiment, videos <strong>recorded with this robot</strong> will be played.</p>"+
+                  "<p>Press any key to continue.</p>"
+			};
+
+      var instructionsA1 = {
+			  type: "html-keyboard-response",
+			  stimulus: "<p>Questions about your <strong>understanding of the scene</strong>, <strong>what this robot should do</strong>, and <strong>why</strong> will be asked.</p>" +
+			            "<p>Press any key to start the tutorial.</p>"
+			};
+
+      var instructionsB0 = {
+			  type: "html-keyboard-response",
+			  stimulus: "<p>In this experiment, videos will be played.</p>"+
+                  "<p>Press any key to continue.</p>"
+			};
+
+      var instructionsB1 = {
+			  type: "html-keyboard-response",
+			  stimulus: "<p>Questions about your <strong>understanding of the scene</strong>, <strong>what you should do</strong>, and <strong>why</strong> will be asked.</p>" +
+			            "<p>Press any key to start the tutorial.</p>"
+			};
+
+			if(condition=='conditionA'){
+				timeline.push(instructionsA0);
+        timeline.push(instructionsA1);
+      } else if(condition=='conditionB'){
+        timeline.push(instructionsB0);
+        timeline.push(instructionsB1);
+      }
+		}
+
+    function addToturial(timeline, condition){
+
+    }
+
+    /*****************************************************/
+		function endExperiment(timeline){
+			var finish = {
+		      type: "html-keyboard-response",
+		      stimulus: "<p>Many thanks for your participation.</p>" +
+		      			"<p>Press any key to exit.</p>"
+		    };
+		  timeline.push(finish);
+			timeline.push({
+			  type: 'fullscreen',
+			  fullscreen_mode: false
+			});
+		}
+
+    /*****************************************************/
+		function addQuestions(timeline, condition){
+
+			var survey_trialA = {
+			  type: 'survey-text',
+			  questions: [
+			    {prompt: "What was the goal of the person in the video?", name: 'Goal'},
+			    {prompt: "Should the robot take any action at this point? If so, what?", name: 'Action'},
+			    {prompt: "Can you explain what made you suggest this action (or lack of action)?", name: 'Why'}
+			  ],
+			};
+
+      var survey_trialB = {
+			  type: 'survey-text',
+			  questions: [
+			    {prompt: "What was the goal of the person in the video?", name: 'Goal'},
+			    {prompt: "Would you take any action at this point? If so, what?", name: 'Action'},
+			    {prompt: "Can you explain what made you suggest this action (or lack of action)?", name: 'Why'}
+			  ],
+			};
+
+			if(condition_assignment=='conditionA')
+				timeline.push(survey_trialA);
+			else if(condition_assignment=='conditionB')
+				timeline.push(survey_trialB);
+		}
+
+    /*****************************************************/
+    function addVideoTrial(timeline, condition, video_indice, nb_waypoint){
+			if(nb_waypoint == 0)
+			{
+				var trial = {
+			    type: 'video-keyboard-response',
+			    sources: [
+			        'vid/VID'+video_indice.toString()+'.mp4'
+			    ],
+			    response_ends_trial: true,
+			    choices: jsPsych.NO_KEYS,
+			    trial_ends_after_video: true,
+			    width: 640*1.5
+				}
+				timeline.push(trial);
+				addQuestions(timeline, condition);
+			} else {
+				for (var i=0; i<nb_waypoint; i++)
+				{
+					var trial = {
+				    type: 'video-keyboard-response',
+				    sources: [
+				        'vid/VID'+video_indice.toString()+'_'+i.toString()+'.mp4'
+				    ],
+				    response_ends_trial: true,
+				    choices: jsPsych.NO_KEYS,
+				    trial_ends_after_video: true,
+				    width: 640*1.5
+					}
+					timeline.push(trial);
+					addQuestions(timeline, condition);
+				}
+      }
+		}
+
+    /*****************************************************/
+	  function saveData(name, data){
+		  var xhr = new XMLHttpRequest();
+		  xhr.open('POST', 'write_data.php'); // 'write_data.php' is the path to the php file described above.
+		  xhr.setRequestHeader('Content-Type', 'application/json');
+		  xhr.send(JSON.stringify({filename: name, filedata: data}));
+		}
+
+		/*****************************************************/
+		/* MAIN PROGRAM 									                   */
+		/*****************************************************/
+
+		/* create timeline */
+	  var my_timeline = [];
+
+	  // generate a random subject ID with 128 characters
+		var subject_id = jsPsych.randomization.randomID(128);
+
+		// pick a random condition for the subject at the start of the experiment
+		var condition_assignment = jsPsych.randomization.sampleWithoutReplacement(['conditionA', 'conditionB'], 1)[0];
+
+		var video_indices = [0, 1];
+	  var video_waypoints = [0, 2];
+    var nb_max_trial = 10;
+		var shuffled_video_indices = jsPsych.randomization.shuffleNoRepeats(video_indices);
+
+		jsPsych.data.addProperties({
+		  subject: subject_id,
+		  condition: condition_assignment,
+		  video_order: shuffled_video_indices
+		});
+
+		beginExperiment(my_timeline, condition_assignment);
+
+		for (var i=0; i<shuffled_video_indices.length || i>nb_max_trial; i++)
+		{
+			addVideoTrial(my_timeline, condition_assignment, shuffled_video_indices[i], video_waypoints[shuffled_video_indices[i]]);
+		}
+
+		endExperiment(my_timeline);
+
+    /* start the experiment */
+    jsPsych.init({
+      timeline: my_timeline
+    });
+    </script>
+</html>
