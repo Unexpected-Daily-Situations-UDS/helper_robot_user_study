@@ -4,6 +4,7 @@
         <title>Pilot study</title>
         <script src="src/jspsych-6.1.0/jspsych.js"></script>
         <script src="src/jspsych-6.1.0/plugins/jspsych-fullscreen.js"></script>
+        <script src="src/jspsych-6.1.0/plugins/jspsych-survey-html-form.js"></script>
         <script src="src/jspsych-6.1.0/plugins/jspsych-video-keyboard-response.js"></script>
         <script src="src/jspsych-6.1.0/plugins/jspsych-survey-text.js"></script>
         <script src="src/jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
@@ -61,7 +62,7 @@
       }
 		}
 
-    function addToturial(timeline, condition){
+    function addTutorial(timeline, condition){
 
     }
 
@@ -80,30 +81,40 @@
 		}
 
     /*****************************************************/
-		function addQuestions(timeline, condition){
+		function addQuestions(timeline, condition, vid_idx, seq_idx){
+			var video_path;
+			if (seq_idx < 0)
+			{
+				video_path = 'videos/video-'+vid_idx.toString()+'.jpg';
+			}
+			else
+			{
+				video_path = 'videos/video-'+vid_idx.toString()+'-'+seq_idx.toString()+'.jpg';
+			}
 
-			var survey_trialA = {
-			  type: 'survey-text',
-			  questions: [
-			    {prompt: "What was the goal of the person in the video?", name: 'Goal'},
-			    {prompt: "Should the robot take any action at this point? If so, what?", name: 'Action'},
-			    {prompt: "Can you explain what made you suggest this action (or lack of action)?", name: 'Why'}
-			  ],
-			};
+	      //
+	      	if(condition_assignment=='conditionA')
+	      	{
+	      		var form_trial = {
+						          type: 'survey-html-form',
+						          preamble: '<p><img src="'+video_path+'" width=640/></p>',
+						          html: '<p> What is the goal of the person in the video? <input name="goal" type="text" /></p>'
+						                + '<p> Should the robot take any action at this point? If so, what? <input name="action" type="text" /></p>'
+						                + '<p> Can you explain what made you suggest this action (or lack of action)? <input name="why" type="text" /></p>'
+	        					 };
+	      	}
+	      	else
+	      	{
+	      		var form_trial = {
+						          type: 'survey-html-form',
+						          preamble: '<p><img src="'+video_path+'" width=640/></p>',
+						          html: '<p> What is the goal of the person in the video? <input name="goal" type="text" /></p>'
+						                + '<p> Would a person take any action at this point? If so, what? <input name="action" type="text" /></p>'
+						                + '<p> Can you explain what made you suggest this action (or lack of action)? <input name="why" type="text" /></p>'
+	        					 };
+	      	}        
 
-      var survey_trialB = {
-			  type: 'survey-text',
-			  questions: [
-			    {prompt: "What was the goal of the person in the video?", name: 'Goal'},
-			    {prompt: "Would you take any action at this point? If so, what?", name: 'Action'},
-			    {prompt: "Can you explain what made you suggest this action (or lack of action)?", name: 'Why'}
-			  ],
-			};
-
-			if(condition_assignment=='conditionA')
-				timeline.push(survey_trialA);
-			else if(condition_assignment=='conditionB')
-				timeline.push(survey_trialB);
+	        timeline.push(form_trial);
 		}
 
     /*****************************************************/
@@ -113,30 +124,30 @@
 				var trial = {
 			    type: 'video-keyboard-response',
 			    sources: [
-			        'vid/VID'+video_indice.toString()+'.mp4'
+			        'videos/video-'+video_indice.toString()+'.mp4'
 			    ],
 			    response_ends_trial: true,
 			    choices: jsPsych.NO_KEYS,
 			    trial_ends_after_video: true,
-			    width: 640*1.5
+			    width: 640
 				}
 				timeline.push(trial);
-				addQuestions(timeline, condition);
+				addQuestions(timeline, condition, video_indice, -1);
 			} else {
 				for (var i=0; i<nb_waypoint; i++)
 				{
 					var trial = {
 				    type: 'video-keyboard-response',
 				    sources: [
-				        'vid/VID'+video_indice.toString()+'_'+i.toString()+'.mp4'
+				        'videos/video-'+video_indice.toString()+'-'+i.toString()+'.mp4'
 				    ],
 				    response_ends_trial: true,
 				    choices: jsPsych.NO_KEYS,
 				    trial_ends_after_video: true,
-				    width: 640*1.5
-					}
+				    width: 640
+					};
 					timeline.push(trial);
-					addQuestions(timeline, condition);
+					addQuestions(timeline, condition, video_indice, i);
 				}
       }
 		}
@@ -162,9 +173,9 @@
 		// pick a random condition for the subject at the start of the experiment
 		var condition_assignment = jsPsych.randomization.sampleWithoutReplacement(['conditionA', 'conditionB'], 1)[0];
 
-		var video_indices = [0, 1];
-	  var video_waypoints = [0, 2];
-    var nb_max_trial = 10;
+		var video_indices = [0];
+	  	var video_waypoints = [3];
+    	var nb_max_trial = 10;
 		var shuffled_video_indices = jsPsych.randomization.shuffleNoRepeats(video_indices);
 
 		jsPsych.data.addProperties({
@@ -184,7 +195,9 @@
 
     /* start the experiment */
     jsPsych.init({
-      timeline: my_timeline
+    	timeline: my_timeline,
+    	on_finish: function() { jsPsych.data.displayData(); }
     });
+
     </script>
 </html>
